@@ -1,0 +1,6 @@
+{
+  "name": "Our Fairy Love Story",
+  "description": "An interactive fairytale romantic storybook featuring relationship timelines, photo galleries, event countdowns, card decks, quizzes, custom music players, and an integrated admin control room to customize memories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
