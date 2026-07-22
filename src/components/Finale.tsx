@@ -81,7 +81,7 @@ export default function Finale({ finaleMessage, theme }: FinaleProps) {
                 : "opacity-80 scale-95 font-black text-base sm:text-lg text-[#EA580C]"
             }`}
           >
-            {unlocked ? finaleMessage : " Click below to unlock my final message "}
+            {unlocked ? finaleMessage : "Click below to unlock my final message"}
           </p>
         </div>
 
