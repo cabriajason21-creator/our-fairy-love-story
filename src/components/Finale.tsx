@@ -123,3 +123,5 @@ export default function Finale({ finaleMessage, theme }: FinaleProps) {
     </div>
   );
 }
+
+
