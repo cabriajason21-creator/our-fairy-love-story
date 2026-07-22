@@ -13,6 +13,86 @@ export default function Gate({ gateTitle, gateSub, onOpen, onStartPlay }: GatePr
   const handleOpen = () => {
     if (opening) return;
     setOpening(true);
+
+    // Synthesize subtle, immersive medieval castle door creak
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioContextClass) {
+        const ctx = new AudioContextClass();
+        const now = ctx.currentTime;
+        const duration = 1.2;
+
+        // --- 1. Wood Friction (The stick-slip "creeeee") ---
+        const woodOsc = ctx.createOscillator();
+        woodOsc.type = "sawtooth";
+        woodOsc.frequency.setValueAtTime(55, now);
+        woodOsc.frequency.exponentialRampToValueAtTime(110, now + 0.4);
+        woodOsc.frequency.exponentialRampToValueAtTime(45, now + duration);
+
+        // Fast modulation (to create the "ratcheting" stick-slip effect)
+        const rateOsc = ctx.createOscillator();
+        rateOsc.type = "sawtooth";
+        rateOsc.frequency.setValueAtTime(32, now);
+        rateOsc.frequency.linearRampToValueAtTime(15, now + duration);
+
+        const rateGain = ctx.createGain();
+        rateGain.gain.setValueAtTime(50, now);
+        rateGain.gain.linearRampToValueAtTime(10, now + duration);
+
+        rateOsc.connect(rateGain);
+        rateGain.connect(woodOsc.frequency);
+
+        const woodFilter = ctx.createBiquadFilter();
+        woodFilter.type = "bandpass";
+        woodFilter.frequency.setValueAtTime(120, now);
+        woodFilter.Q.setValueAtTime(3, now);
+        woodFilter.frequency.exponentialRampToValueAtTime(300, now + 0.4);
+        woodFilter.frequency.exponentialRampToValueAtTime(100, now + duration);
+
+        const woodGain = ctx.createGain();
+        woodGain.gain.setValueAtTime(0.0, now);
+        woodGain.gain.linearRampToValueAtTime(0.35, now + 0.15);
+        woodGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        woodOsc.connect(woodFilter);
+        woodFilter.connect(woodGain);
+        woodGain.connect(ctx.destination);
+
+        // --- 2. Hinge Squeak (The metal friction "eeeeeek") ---
+        const hingeOsc = ctx.createOscillator();
+        hingeOsc.type = "triangle";
+        hingeOsc.frequency.setValueAtTime(880, now);
+        hingeOsc.frequency.exponentialRampToValueAtTime(1200, now + 0.35);
+        hingeOsc.frequency.exponentialRampToValueAtTime(700, now + duration);
+
+        const hingeFilter = ctx.createBiquadFilter();
+        hingeFilter.type = "bandpass";
+        hingeFilter.frequency.setValueAtTime(950, now);
+        hingeFilter.Q.setValueAtTime(6, now);
+
+        const hingeGain = ctx.createGain();
+        hingeGain.gain.setValueAtTime(0.0, now);
+        hingeGain.gain.linearRampToValueAtTime(0.06, now + 0.12);
+        hingeGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        hingeOsc.connect(hingeFilter);
+        hingeFilter.connect(hingeGain);
+        hingeGain.connect(ctx.destination);
+
+        // Start oscillators
+        woodOsc.start(now);
+        rateOsc.start(now);
+        hingeOsc.start(now);
+
+        // Stop oscillators
+        woodOsc.stop(now + duration);
+        rateOsc.stop(now + duration);
+        hingeOsc.stop(now + duration);
+      }
+    } catch (err) {
+      console.warn("Audio synthesis error:", err);
+    }
+
     if (onStartPlay) {
       onStartPlay();
     }
