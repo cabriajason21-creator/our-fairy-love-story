@@ -22,7 +22,7 @@ export default function Gallery({ gallery, theme }: GalleryProps) {
 
         <div className="mb-4 shrink-0">
           <span className="text-[11px] font-serif font-black text-[#EC4899] uppercase tracking-widest mb-1.5 block">
-            🔮 Memory Log 🔮
+             Memory Log 
           </span>
           <h2 className="font-display font-black text-2xl sm:text-3xl text-[#EA580C] mb-1">
             Memory Album

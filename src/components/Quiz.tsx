@@ -91,7 +91,7 @@ export default function Quiz({ quiz, theme }: QuizProps) {
         <div className="absolute top-0 left-8 w-6 h-8 bg-[#EF4444] border-l-2 border-r-2 border-b-2 border-b-transparent border-[#4E2512] rounded-b-md z-10" />
 
         <span className="text-[11px] font-serif font-black text-[#EC4899] uppercase tracking-widest mb-1.5 block">
-          🧠 Lovers' Trivia 🧠
+           Lovers' Trivia 
         </span>
         <h2 className="font-display font-black text-2xl sm:text-3xl text-[#EA580C] mb-1">
           How Well Do You Know Us?

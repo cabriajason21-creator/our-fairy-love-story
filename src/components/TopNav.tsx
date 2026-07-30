@@ -25,7 +25,7 @@ export default function TopNav({
   const scrollLeftRef = useRef(0);
   const hasDraggedRef = useRef(false);
 
-  // 🌟 Horizontal Scroll via Mouse Wheel on Desktop/Laptop 🌟
+  //  Horizontal Scroll via Mouse Wheel on Desktop/Laptop 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;

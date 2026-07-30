@@ -27,7 +27,7 @@ export default function Voice({
         <div className="absolute top-0 right-10 w-6 h-8 bg-[#3B82F6] border-l-2 border-r-2 border-b-2 border-b-transparent border-[#4E2512] rounded-b-md z-10" />
 
         <span className="text-[11px] font-serif font-black text-[#EC4899] uppercase tracking-widest mb-1.5 block">
-          🎵 Love Jukebox 🎵
+           Love Jukebox 
         </span>
         <h2 className="font-display font-black text-2xl sm:text-3xl text-[#EA580C] mb-1">
           A Little Song For You

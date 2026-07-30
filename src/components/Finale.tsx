@@ -60,7 +60,7 @@ export default function Finale({ finaleMessage, theme }: FinaleProps) {
         {/* Header Title Section */}
         <div className="shrink-0 mb-3 pt-1">
           <span className="text-[11px] font-serif font-black text-[#EC4899] uppercase tracking-widest mb-1 block">
-            ✨ The Final Chapter ✨
+             The Final Chapter 
           </span>
           <h2 className="font-display font-black text-2xl sm:text-3xl text-[#EA580C] mb-1">
             A Letter From My Heart
@@ -70,15 +70,19 @@ export default function Finale({ finaleMessage, theme }: FinaleProps) {
 
         {/* Message Box - Fixed spacious height before and after unlock */}
         <div 
-          className={`w-full h-[320px] sm:h-[360px] bg-[#FCF6E9] border-2 border-[#4E2512] rounded-2xl p-6 sm:p-8 shadow-[inset_0_2px_5px_rgba(0,0,0,0.06)] overflow-y-auto text-left relative my-2 ${
-            unlocked ? "" : "flex flex-col items-center justify-center text-center"
+          className={`w-full h-[320px] sm:h-[360px] bg-[#FCF6E9] border-2 border-[#4E2512] rounded-2xl p-4 sm:p-8 shadow-[inset_0_2px_5px_rgba(0,0,0,0.06)] overflow-y-auto relative my-2 ${
+            unlocked 
+              ? "text-left" 
+              : "flex flex-col items-center justify-center text-center"
           }`}
         >
           <p
-            className={`font-serif text-sm sm:text-base md:text-[17px] font-bold leading-relaxed sm:leading-loose whitespace-pre-wrap transition-all duration-500 select-text ${
+            className={`font-serif leading-relaxed sm:leading-loose transition-all duration-500 select-text ${
               unlocked 
-                ? `opacity-100 scale-100 pb-2 ${theme === "night" ? "text-[#FAF4E9]" : "text-[#4E2512]"}` 
-                : "opacity-80 scale-95 font-black text-base sm:text-lg text-[#EA580C]"
+                ? `opacity-100 scale-100 pb-2 text-sm sm:text-base md:text-[17px] font-bold whitespace-pre-wrap ${
+                    theme === "night" ? "text-[#FAF4E9]" : "text-[#4E2512]"
+                  }` 
+                : "opacity-80 scale-95 font-black text-xs sm:text-lg text-[#EA580C] whitespace-nowrap sm:whitespace-pre-wrap px-1"
             }`}
           >
             {unlocked ? finaleMessage : "Click below to unlock my final message"}
@@ -123,5 +127,3 @@ export default function Finale({ finaleMessage, theme }: FinaleProps) {
     </div>
   );
 }
-
-
