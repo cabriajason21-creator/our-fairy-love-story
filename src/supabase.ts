@@ -1,10 +1,62 @@
 import { createClient } from "@supabase/supabase-js";
 import { ClientAccount } from "./types";
 
-const SUPABASE_URL = ((import.meta as any).env?.VITE_SUPABASE_URL as string) || "https://igscxnzefglfblljgtqn.supabase.co";
-const SUPABASE_ANON_KEY = ((import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlnc2N4bnplZmdsZmJsbGpndHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NTIwNjksImV4cCI6MjEwMDEyODA2OX0.CwGZgIRF7jobfVmKGaquRG6bCrRlb0lVL5cKeJP9Zlk";
+/**
+ * Safely resolves an environment variable across Vite, Vercel, and Node runtimes.
+ * Cleans up leading/trailing quotes, whitespace, and invalid values.
+ */
+function resolveEnvVar(keys: string[], defaultValue: string): string {
+  for (const key of keys) {
+    let val: any = undefined;
+    try {
+      val = (import.meta as any).env?.[key];
+    } catch {
+      // Ignore meta env read errors
+    }
+    if (!val && typeof process !== "undefined" && process.env) {
+      val = process.env[key];
+    }
+    if (val && typeof val === "string") {
+      const cleaned = val.trim().replace(/^["']|["']$/g, "");
+      if (cleaned && cleaned !== "undefined" && cleaned !== "null" && cleaned.length > 0) {
+        return cleaned;
+      }
+    }
+  }
+  return defaultValue;
+}
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const DEFAULT_SUPABASE_URL = "https://igscxnzefglfblljgtqn.supabase.co";
+const DEFAULT_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlnc2N4bnplZmdsZmJsbGpndHFuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1NTIwNjksImV4cCI6MjEwMDEyODA2OX0.CwGZgIRF7jobfVmKGaquRG6bCrRlb0lVL5cKeJP9Zlk";
+
+export const SUPABASE_URL = resolveEnvVar(
+  ["VITE_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL", "REACT_APP_SUPABASE_URL"],
+  DEFAULT_SUPABASE_URL
+);
+
+export const SUPABASE_ANON_KEY = resolveEnvVar(
+  [
+    "VITE_SUPABASE_ANON_KEY",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_KEY",
+    "REACT_APP_SUPABASE_ANON_KEY",
+  ],
+  DEFAULT_SUPABASE_ANON_KEY
+);
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+  global: {
+    headers: {
+      "X-Client-Info": "love-story-app",
+    },
+  },
+});
 
 const BUCKET_NAME = "media_uploads";
 
@@ -13,28 +65,32 @@ const BUCKET_NAME = "media_uploads";
  * and returns its public URL. Files can optionally be organized in a folder named after userId.
  */
 export async function uploadFileToSupabase(file: File, userId?: string): Promise<string> {
-  // Generate a clean, unique file path
-  const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-  const folder = userId ? `${userId}/` : "";
-  const filePath = `${folder}${Date.now()}_${cleanName}`;
+  try {
+    const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const folder = userId ? `${userId}/` : "";
+    const filePath = `${folder}${Date.now()}_${cleanName}`;
 
-  const { data, error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
 
-  if (error) {
-    console.error("Supabase Storage Upload Error:", error);
-    throw new Error(`Failed to upload to Supabase: ${error.message}`);
+    if (error) {
+      console.error("Supabase Storage Upload Error:", error);
+      throw error;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  } catch (err: any) {
+    console.error("Exception in uploadFileToSupabase:", err);
+    throw new Error(err?.message || String(err));
   }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
-
-  return publicUrl;
 }
 
 /**
@@ -43,24 +99,28 @@ export async function uploadFileToSupabase(file: File, userId?: string): Promise
 export async function deleteFileFromSupabase(urlOrPath: string): Promise<void> {
   if (!urlOrPath) return;
 
-  let filePath = urlOrPath;
-  const bucketSegment = "/storage/v1/object/public/media_uploads/";
-  const index = urlOrPath.indexOf(bucketSegment);
-  if (index !== -1) {
-    filePath = decodeURIComponent(urlOrPath.substring(index + bucketSegment.length));
-  } else if (urlOrPath.startsWith("http")) {
-    // If it's some other external URL (like an un-uploaded template asset), do not attempt to delete it
-    return;
-  }
+  try {
+    let filePath = urlOrPath;
+    const bucketSegment = "/storage/v1/object/public/media_uploads/";
+    const index = urlOrPath.indexOf(bucketSegment);
+    if (index !== -1) {
+      filePath = decodeURIComponent(urlOrPath.substring(index + bucketSegment.length));
+    } else if (urlOrPath.startsWith("http")) {
+      // If it's some other external URL (like an un-uploaded template asset), do not attempt to delete it
+      return;
+    }
 
-  const { error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .remove([filePath]);
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([filePath]);
 
-  if (error) {
-    console.warn("Supabase Storage Delete Warning or Error for path:", filePath, error.message || error);
-  } else {
-    console.log("Successfully deleted file from Supabase Storage:", filePath);
+    if (error) {
+      console.warn("Supabase Storage Delete Warning or Error for path:", filePath, error.message || error);
+    } else {
+      console.log("Successfully deleted file from Supabase Storage:", filePath);
+    }
+  } catch (err: any) {
+    console.warn("Exception in deleteFileFromSupabase:", err?.message || err);
   }
 }
 
@@ -69,21 +129,38 @@ export async function deleteFileFromSupabase(urlOrPath: string): Promise<void> {
  * Upserts a row in the `fairy_clients` table.
  */
 export async function syncClientToSupabase(client: ClientAccount): Promise<void> {
+  if (!client || !client.id) {
+    console.warn("syncClientToSupabase called with invalid client account:", client);
+    return;
+  }
+
   const payload = {
     id: client.id,
     username: client.username,
     password: client.password,
     space_state: client.spaceState,
-    created_at: client.createdAt,
+    created_at: client.createdAt || new Date().toISOString(),
   };
 
-  const { error } = await supabase
-    .from("fairy_clients")
-    .upsert(payload, { onConflict: "id" });
+  try {
+    const { error } = await supabase
+      .from("fairy_clients")
+      .upsert(payload, { onConflict: "id" });
 
-  if (error) {
-    console.error("Supabase Database Sync Error:", error);
-    throw new Error(`Failed to sync to database: ${error.message}`);
+    if (error) {
+      console.error("Supabase Database Sync Error Details:", {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+        targetClientId: client.id,
+      });
+      throw error;
+    }
+  } catch (err: any) {
+    console.error("Exception in syncClientToSupabase:", err);
+    const errMsg = err?.message || String(err);
+    throw new Error(errMsg);
   }
 }
 
@@ -91,14 +168,25 @@ export async function syncClientToSupabase(client: ClientAccount): Promise<void>
  * Deletes a client account from the Supabase database.
  */
 export async function deleteClientFromSupabase(clientId: string): Promise<void> {
-  const { error } = await supabase
-    .from("fairy_clients")
-    .delete()
-    .eq("id", clientId);
+  if (!clientId) return;
 
-  if (error) {
-    console.error("Supabase Database Delete Error:", error);
-    throw new Error(`Failed to delete client from database: ${error.message}`);
+  try {
+    const { error } = await supabase
+      .from("fairy_clients")
+      .delete()
+      .eq("id", clientId);
+
+    if (error) {
+      console.error("Supabase Database Delete Error Details:", {
+        message: error.message,
+        code: error.code,
+        clientId,
+      });
+      throw error;
+    }
+  } catch (err: any) {
+    console.error("Exception in deleteClientFromSupabase:", err);
+    throw new Error(err?.message || String(err));
   }
 }
 
@@ -127,7 +215,7 @@ export async function fetchClientsFromSupabase(): Promise<ClientAccount[] | null
       createdAt: item.created_at,
     }));
   } catch (err: any) {
-    console.warn("Supabase Database Fetch Exception:", err.message || err);
+    console.warn("Supabase Database Fetch Exception:", err?.message || err);
     return null;
   }
 }
@@ -138,7 +226,24 @@ export async function fetchClientsFromSupabase(): Promise<ClientAccount[] | null
 export function getFriendlyDbError(error: any): string {
   const msg = error?.message || String(error);
   const msgLower = msg.toLowerCase();
-  
+
+  if (
+    msgLower.includes("failed to fetch") ||
+    msgLower.includes("typeerror") ||
+    msgLower.includes("networkerror") ||
+    msgLower.includes("network error") ||
+    msgLower.includes("fetch failed") ||
+    msgLower.includes("network")
+  ) {
+    return `Cloud Database Sync Status 🌐\n\n` +
+           `Could not reach the cloud database endpoint (Failed to fetch).\n\n` +
+           `✅ DON'T WORRY: All your changes ARE SAVED LOCALLY on this browser!\n\n` +
+           `If you want your changes synced across all devices via Supabase, please verify:\n` +
+           `1. Is your Supabase project active? (Free-tier Supabase projects auto-pause after 7 days of inactivity — log into supabase.com to reactivate it).\n` +
+           `2. Are VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY configured in your Vercel Environment Variables?\n` +
+           `3. Are any ad-blockers, browser extensions, or firewalls blocking connection to *.supabase.co?`;
+  }
+
   if (
     msgLower.includes("could not find") || 
     msgLower.includes("table") || 
@@ -162,7 +267,7 @@ export function getFriendlyDbError(error: any): string {
            `CREATE POLICY "Allow public update" ON public.fairy_clients FOR UPDATE USING (true);\n` +
            `CREATE POLICY "Allow public delete" ON public.fairy_clients FOR DELETE USING (true);`;
   }
-  
+
   if (
     msgLower.includes("row-level security") || 
     msgLower.includes("rls") || 
@@ -178,6 +283,7 @@ export function getFriendlyDbError(error: any): string {
            `CREATE POLICY "Allow public update" ON public.fairy_clients FOR UPDATE USING (true);\n` +
            `CREATE POLICY "Allow public delete" ON public.fairy_clients FOR DELETE USING (true);`;
   }
-  
+
   return msg;
 }
+

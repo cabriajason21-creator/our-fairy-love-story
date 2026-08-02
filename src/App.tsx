@@ -331,13 +331,18 @@ export default function App() {
   // Handle Save State (Client Space Edits)
   const handleSaveState = async (updatedState: LoveStoryState) => {
     setState(updatedState);
-    if (session) {
-      const targetId = session.role === "client" ? session.clientId : spaceParam;
-      if (!targetId) return;
 
-      const clientToUpdate = clients.find((c) => c.id === targetId);
-      if (!clientToUpdate) return;
+    // Determine target client account to save to
+    let targetId = session?.role === "client" ? session.clientId : spaceParam;
+    let clientToUpdate = clients.find((c) => c.id === targetId);
 
+    // Safe fallback if targetId is missing or client is not found: update the first available client space
+    if (!clientToUpdate && clients.length > 0) {
+      clientToUpdate = clients[0];
+      targetId = clientToUpdate.id;
+    }
+
+    if (clientToUpdate && targetId) {
       const updatedClient = { ...clientToUpdate, spaceState: updatedState };
       const updatedClients = clients.map((c) => {
         if (c.id === targetId) {
@@ -347,7 +352,7 @@ export default function App() {
       });
       setClients(updatedClients);
 
-      // Save locally as a fallback
+      // Save locally as immediate fallback
       try {
         localStorage.setItem(CLIENTS_DB_KEY, JSON.stringify(updatedClients));
       } catch (e: any) {
