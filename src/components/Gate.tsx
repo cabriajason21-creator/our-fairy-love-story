@@ -14,6 +14,30 @@ export default function Gate({ gateTitle, gateSub, onOpen, onStartPlay }: GatePr
     if (opening) return;
     setOpening(true);
 
+    // Request full-screen if on deployed live standalone URL and not in editor iframe
+    try {
+      const isNotInIframe = window.self === window.top;
+      const isNotAiStudioDomain = window.location.hostname !== "aistudio.google.com";
+      if (isNotInIframe && isNotAiStudioDomain) {
+        const docEl = document.documentElement as any;
+        if (
+          !document.fullscreenElement &&
+          !(document as any).webkitFullscreenElement &&
+          !(document as any).msFullscreenElement
+        ) {
+          if (docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => {});
+          } else if (docEl.webkitRequestFullscreen) {
+            docEl.webkitRequestFullscreen();
+          } else if (docEl.msRequestFullscreen) {
+            docEl.msRequestFullscreen();
+          }
+        }
+      }
+    } catch {
+      // Fallback for cross-origin or restricted environment
+    }
+
     if (onStartPlay) {
       onStartPlay();
     }
